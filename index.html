@@ -44,9 +44,9 @@
 
   <div class="card">
     <label class="pick">📷 Scegli o scatta una foto
-      <input id="file" type="file" accept="image/*" capture="user">
+      <input id="file" type="file" accept="image/*">
     </label>
-    <div id="status"></div>
+    <div id="status">Caricamento della pagina…</div>
     <ul class="tips">
       <li>Viso frontale, senza trucco, capelli lontani dalla fronte.</li>
       <li>Luce frontale e morbida (finestra davanti a te), niente luce dall'alto.</li>
@@ -92,6 +92,13 @@
     Rilevamento del viso: MediaPipe (Google), caricato da CDN.
   </p>
 </main>
-<script type="module" src="./app.js"></script>
+<script>
+  // Mostra sulla pagina eventuali errori, cosi' si possono segnalare con uno screenshot
+  function showErr(m) { var s = document.getElementById("status"); s.textContent = "Errore: " + m; s.className = "err"; }
+  window.addEventListener("error", function (e) { showErr(e.message || e); });
+  window.addEventListener("unhandledrejection", function (e) { showErr((e.reason && e.reason.message) || e.reason); });
+  setTimeout(function () { var s = document.getElementById("status"); if (s.textContent.indexOf("Caricamento") === 0) showErr("lo script non si è avviato (browser troppo vecchio?)"); }, 8000);
+</script>
+<script type="module" src="./app.js?v=2"></script>
 </body>
 </html>

@@ -16,7 +16,12 @@ let lastDraw = null;
 async function getLandmarker() {
   if (landmarker) return landmarker;
   status("Carico il modello del viso (solo la prima volta)…");
-  const { FaceLandmarker, FilesetResolver } = await import(`${MP_BASE}/vision_bundle.mjs`);
+  let mod = null, lastErr = null;
+  for (const u of [`${MP_BASE}/vision_bundle.mjs`, `${MP_BASE}/vision_bundle.js`, `${MP_BASE}/+esm`]) {
+    try { mod = await import(u); if (mod.FaceLandmarker || mod.default?.FaceLandmarker) break; } catch (e) { lastErr = e; }
+  }
+  if (!mod) throw new Error("impossibile caricare MediaPipe (" + (lastErr?.message || lastErr) + ")");
+  const { FaceLandmarker, FilesetResolver } = mod.FaceLandmarker ? mod : mod.default;
   const fileset = await FilesetResolver.forVisionTasks(`${MP_BASE}/wasm`);
   landmarker = await FaceLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: MODEL_URL },
@@ -26,8 +31,21 @@ async function getLandmarker() {
   return landmarker;
 }
 
+async function decode(file) {
+  // Safari/iPhone: createImageBitmap con opzioni puo' non essere supportato -> uso <img>
+  try { return await createImageBitmap(file, { imageOrientation: "from-image" }); } catch { }
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    return img;
+  } finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+}
+
 async function loadImage(file) {
-  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const bmp = await decode(file);
+  if (!bmp.width) throw new Error("formato foto non leggibile (se è HEIC, prova a scattare direttamente dalla pagina)");
   const s = Math.min(1, MAX_INPUT / Math.max(bmp.width, bmp.height));
   const c = document.createElement("canvas");
   c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
@@ -154,6 +172,7 @@ function saveHistory(r) {
     h.push({ data: r.data, punteggio: r.punteggio, punteggi: r.punteggi });
     localStorage.setItem("storico", JSON.stringify(h.slice(-50)));
     renderHistory();
+status("Pronta. Scegli o scatta una foto.");
   } catch { /* storage non disponibile */ }
 }
 function renderHistory() {
