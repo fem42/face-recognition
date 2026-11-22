@@ -118,7 +118,10 @@ async function run(file) {
     status("Stimo l'età…");
     $("age").textContent = "…";
     try {
-      apparent = await estimateAge(work);
+      apparent = await Promise.race([
+        estimateAge(work),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("tempo scaduto (60 s) nel caricare il modello dell'età")), 60000)),
+      ]);
     } catch (e) {
       console.error(e);
       $("ageNote").textContent = "Stima dell'età non riuscita: " + (e.message || e);

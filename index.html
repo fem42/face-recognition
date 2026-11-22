@@ -92,7 +92,7 @@
     e dipendono molto dalla luce: servono soprattutto a confrontare le tue foto nel tempo.
     Idratazione ed elasticità non vengono stimate: da una foto non si misurano in modo affidabile.
     L'età è l'età <i>apparente</i> stimata da una rete neurale (errore medio di alcuni anni), corretta di qualche anno in base ai punteggi.
-    Rilevamento del viso: MediaPipe (Google). Età: face-api di Vladimir Mandic (licenza MIT).
+    Versione 4. Rilevamento del viso: MediaPipe (Google). Età: face-api di Vladimir Mandic (licenza MIT).
   </p>
 </main>
 <script>
@@ -102,6 +102,6 @@
   window.addEventListener("unhandledrejection", function (e) { showErr((e.reason && e.reason.message) || e.reason); });
   setTimeout(function () { var s = document.getElementById("status"); if (s.textContent.indexOf("Caricamento") === 0) showErr("lo script non si è avviato (browser troppo vecchio?)"); }, 8000);
 </script>
-<script type="module" src="./app.js?v=3"></script>
+<script type="module" src="./app.js?v=4"></script>
 </body>
 </html>
