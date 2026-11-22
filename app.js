@@ -172,7 +172,6 @@ function saveHistory(r) {
     h.push({ data: r.data, punteggio: r.punteggio, punteggi: r.punteggi });
     localStorage.setItem("storico", JSON.stringify(h.slice(-50)));
     renderHistory();
-status("Pronta. Scegli o scatta una foto.");
   } catch { /* storage non disponibile */ }
 }
 function renderHistory() {
@@ -193,3 +192,4 @@ $("download").addEventListener("click", () => {
 });
 $("clearHistory").addEventListener("click", () => { try { localStorage.removeItem("storico"); } catch { } renderHistory(); });
 renderHistory();
+status("Pronta. Scegli o scatta una foto.");
