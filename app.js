@@ -6,6 +6,25 @@ const MP_BASE = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`
 const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
 const WORK_FACE_WIDTH = 600;
 const MAX_INPUT = 1600;
+const FACEAPI_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.15/dist/face-api.esm.js";
+const AGING_KEYS = ["Rughe", "Texture", "Macchie", "Occhiaie", "Uniformità"];
+let faceapi = null;
+
+// Eta' apparente con la rete AgeGenderNet di face-api (modelli in ./models)
+async function estimateAge(canvas) {
+  if (!faceapi) {
+    const mod = await import(FACEAPI_URL);
+    const fa = mod.nets ? mod : mod.default;
+    await fa.tf.ready();
+    await fa.nets.tinyFaceDetector.loadFromUri("./models");
+    await fa.nets.ageGenderNet.loadFromUri("./models");
+    faceapi = fa;
+  }
+  const r = await faceapi
+    .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.3 }))
+    .withAgeAndGender();
+  return r ? r.age : null;
+}
 
 const $ = id => document.getElementById(id);
 const status = (t, err = false) => { $("status").textContent = t; $("status").className = err ? "err" : ""; };
@@ -93,8 +112,29 @@ async function run(file) {
     drawFace(work, img, R, overlay);
     drawRadar(scores);
     showScores(overall, scores, warnings);
+
+    // Eta': rete neurale per l'eta' apparente + piccola correzione dai punteggi
+    let apparent = null, skinAge = null;
+    status("Stimo l'età…");
+    $("age").textContent = "…";
+    try {
+      apparent = await estimateAge(work);
+    } catch (e) {
+      console.error(e);
+      $("ageNote").textContent = "Stima dell'età non riuscita: " + (e.message || e);
+    }
+    if (apparent != null) {
+      const aging = AGING_KEYS.reduce((a, k) => a + scores[k], 0) / AGING_KEYS.length;
+      skinAge = Math.round(apparent + Math.max(-5, Math.min(5, (75 - aging) / 5)));
+      apparent = Math.round(apparent);
+      $("age").textContent = skinAge;
+      $("ageNote").textContent = `Età apparente del viso: ${apparent}. Correzione in base a rughe, texture, macchie, occhiaie e uniformità: ${skinAge - apparent >= 0 ? "+" : ""}${skinAge - apparent}.`;
+    } else {
+      $("age").textContent = "–";
+      if (!$("ageNote").textContent) $("ageNote").textContent = "Viso non riconosciuto dal modello dell'età.";
+    }
     lastResult = {
-      data: new Date().toISOString(), punteggio: overall,
+      data: new Date().toISOString(), punteggio: overall, eta_pelle: skinAge, eta_apparente: apparent,
       punteggi: Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, Math.round(v)])),
       misure_grezze: Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, +v.toFixed(3)])),
       avvisi_luce: warnings,
@@ -159,6 +199,7 @@ function drawRadar(scores) {
 }
 
 function showScores(overall, scores, warnings) {
+  $("ageNote").textContent = "";
   $("overall").textContent = overall;
   $("bar").style.width = overall + "%";
   $("warnings").innerHTML = warnings.map(w => `<li>${w}</li>`).join("");
@@ -169,7 +210,7 @@ function showScores(overall, scores, warnings) {
 function saveHistory(r) {
   try {
     const h = JSON.parse(localStorage.getItem("storico") || "[]");
-    h.push({ data: r.data, punteggio: r.punteggio, punteggi: r.punteggi });
+    h.push({ data: r.data, punteggio: r.punteggio, eta_pelle: r.eta_pelle, punteggi: r.punteggi });
     localStorage.setItem("storico", JSON.stringify(h.slice(-50)));
     renderHistory();
   } catch { /* storage non disponibile */ }
@@ -179,7 +220,7 @@ function renderHistory() {
   try { h = JSON.parse(localStorage.getItem("storico") || "[]"); } catch { }
   $("historyBox").hidden = h.length < 2;
   $("history").innerHTML = h.slice(-10).reverse()
-    .map(e => `<li><span>${new Date(e.data).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}</span><b>${e.punteggio}</b></li>`).join("");
+    .map(e => `<li><span>${new Date(e.data).toLocaleString("it-IT", { dateStyle: "short", timeStyle: "short" })}</span><b>${e.punteggio}${e.eta_pelle != null ? ` · ${e.eta_pelle} anni` : ""}</b></li>`).join("");
 }
 
 $("file").addEventListener("change", e => { if (e.target.files[0]) run(e.target.files[0]); e.target.value = ""; });

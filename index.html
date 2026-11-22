@@ -69,10 +69,12 @@
         </div>
       </div>
       <div class="card">
-        <div class="score"><span>Punteggio pelle</span><b id="overall">–</b></div>
+        <div class="score"><span>Punteggio pelle</span><b id="overall">–</b>
+          <span style="margin-left:auto">Età pelle</span><b id="age">–</b></div>
         <div class="track"><div id="bar"></div></div>
         <div class="scale"><span>0</span><span>50</span><span>100</span></div>
         <canvas id="radar"></canvas>
+        <p class="note" id="ageNote"></p>
         <div id="warnBox" hidden><b>Attenzione alla luce</b><ul id="warnings"></ul></div>
         <div class="row"><button class="sec" id="download">Scarica i dati (.json)</button></div>
       </div>
@@ -88,8 +90,9 @@
   <p class="note">
     Strumento indicativo, non diagnostico. I punteggi (100 = migliore) sono calcolati con soglie fissate a mano
     e dipendono molto dalla luce: servono soprattutto a confrontare le tue foto nel tempo.
-    Idratazione, elasticità ed età non vengono stimate: da una foto non si misurano in modo affidabile.
-    Rilevamento del viso: MediaPipe (Google), caricato da CDN.
+    Idratazione ed elasticità non vengono stimate: da una foto non si misurano in modo affidabile.
+    L'età è l'età <i>apparente</i> stimata da una rete neurale (errore medio di alcuni anni), corretta di qualche anno in base ai punteggi.
+    Rilevamento del viso: MediaPipe (Google). Età: face-api di Vladimir Mandic (licenza MIT).
   </p>
 </main>
 <script>
@@ -99,6 +102,6 @@
   window.addEventListener("unhandledrejection", function (e) { showErr((e.reason && e.reason.message) || e.reason); });
   setTimeout(function () { var s = document.getElementById("status"); if (s.textContent.indexOf("Caricamento") === 0) showErr("lo script non si è avviato (browser troppo vecchio?)"); }, 8000);
 </script>
-<script type="module" src="./app.js?v=2"></script>
+<script type="module" src="./app.js?v=3"></script>
 </body>
 </html>
